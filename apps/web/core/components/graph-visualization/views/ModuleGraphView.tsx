@@ -2,8 +2,6 @@ import React, { useMemo, useCallback, useState } from "react";
 import { observer } from "mobx-react";
 import {
   GraphCanvas,
-  GraphConfig,
-  GraphTheme,
   lightTheme,
   darkTheme,
   useGraphData,
@@ -81,10 +79,10 @@ export const ModuleGraphView: React.FC<ModuleGraphViewProps> = observer(({
   const { filters, updateFilter } = useGraphFilters();
 
   // Tema do grafo
-  const graphTheme: GraphTheme = theme === "dark" ? darkTheme : lightTheme;
+  const graphTheme = theme === "dark" ? darkTheme : lightTheme;
 
   // Configuração do grafo
-  const config: GraphConfig = {
+  const config = {
     fitView: true,
     showBackground: true,
     showControls: true,

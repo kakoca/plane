@@ -1,4 +1,5 @@
 import { monitorForElements } from "@atlaskit/pragmatic-drag-and-drop/dist/cjs/entry-point/element/adapter.js";
+import type { MonitorDropArgs } from "@atlaskit/pragmatic-drag-and-drop/dist/cjs/entry-point/element/adapter.js";
 import React, { Fragment, useEffect, useMemo } from "react";
 import { Draggable } from "./draggable";
 
@@ -60,8 +61,8 @@ const moveItem = <T,>(
 
 export const Sortable = <T,>({ data, render, onChange, keyExtractor, containerClassName, id }: Props<T>) => {
   useEffect(() => {
-    const unsubscribe = monitorForElements({
-      onDrop({ source, location }) {
+    const unsubscribe = monitorForElements<TEnhancedData<T>>({
+      onDrop({ source, location }: MonitorDropArgs<TEnhancedData<T>>) {
         const destination = location?.current?.dropTargets[0];
         if (!destination) return;
         const { newData, movedItem } = moveItem(

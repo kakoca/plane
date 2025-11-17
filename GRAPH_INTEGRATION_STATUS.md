@@ -60,28 +60,17 @@ apps/api/plane/app/
 └── urls/graph.py                # Rotas da API
 ```
 
-## 🚧 Tarefas Pendentes (30%)
+## 🚧 Tarefas Pendentes (15%)
 
 ### Prioridade Alta
-1. **Modo Full-Screen** (15. pendente)
-   - Criar rota `/graph` ou `/projects/:id/graph`
-   - Layout imersivo para visualização
-   
-2. **Persistência de Layout** (16. pendente)
-   - Endpoint PATCH /api/graph/layout
-   - Salvar posições dos nós no banco
 
-### Prioridade Média
-3. **Lazy Loading** (17. pendente)
-   - Implementar virtualização para grafos grandes
-   - Carregar nós sob demanda
 
-4. **Testes Unitários** (18. pendente)
+1. **Testes Unitários** (18. pendente)
    - Testes para PlaneDataAdapter
    - Testes para componentes de visualização
 
 ### Prioridade Baixa
-5. **Otimização de Performance** (20. pendente)
+2. **Otimização de Performance** (20. pendente)
    - Web Workers para processamento pesado
    - Memoização e otimizações React
 

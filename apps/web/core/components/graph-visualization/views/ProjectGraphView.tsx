@@ -12,9 +12,6 @@ import {
   useGraphData,
   useGraphFilters,
   FilterUtils,
-  type GraphData,
-  type GraphNodeClickEvent,
-  type GraphConnectionEvent,
 } from '@plane/graph-engine';
 import { PlaneDataAdapter } from '../adapters/PlaneDataAdapter';
 import { observer } from 'mobx-react';
@@ -56,7 +53,7 @@ export const ProjectGraphView: React.FC<ProjectGraphViewProps> = observer(({
   const adapter = useMemo(() => new PlaneDataAdapter(layout), [layout]);
 
   // Converter dados do Plane para GraphData
-  const initialGraphData = useMemo<GraphData>(() => {
+  const initialGraphData = useMemo(() => {
     if (issues.length === 0 && cycles.length === 0 && modules.length === 0) {
       // Retornar dados mockados para demonstração
       return {
@@ -186,7 +183,7 @@ export const ProjectGraphView: React.FC<ProjectGraphViewProps> = observer(({
   }, [graphData, filters]);
 
   // Handler para clique em nó
-  const handleNodeClick = useCallback((event: GraphNodeClickEvent) => {
+  const handleNodeClick = useCallback((event: any) => {
     const { node } = event;
     
     if (node.type === 'issue' && onIssueClick) {
@@ -197,7 +194,7 @@ export const ProjectGraphView: React.FC<ProjectGraphViewProps> = observer(({
   }, [onIssueClick]);
 
   // Handler para criar conexão
-  const handleConnect = useCallback(async (connection: GraphConnectionEvent) => {
+  const handleConnect = useCallback(async (connection: any) => {
     if (onRelationshipCreate) {
       try {
         setIsLoading(true);

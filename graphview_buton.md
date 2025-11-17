@@ -1,0 +1,4 @@
+document.querySelector("body > div.h-screen.w-full.overflow-hidden.bg-custom-background-100.relative.flex.flex-col.app-container > main > div > div > div > div.relative.flex.size-full.overflow-hidden > main > div.z-\\[18\\] > div.px-page-x.h-header.flex.gap-2.w-full.items-center.border-b.border-custom-border-200.bg-custom-sidebar-background-100 > div > div > div.flex.justify-end.gap-3.w-auto.items-start > div > div.hidden.\\@4xl\\:flex")
+
+document.querySelector("#sidebar-fd1c15a3-6570-4543-8e14-f6251f73adf7-JOINED > div:nth-child(3)")/document.querySelector("#headlessui-disclosure-panel-\\:r2gt\\:")
+    

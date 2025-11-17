@@ -3,7 +3,7 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // icons
-import { Circle, ExternalLink } from "lucide-react";
+import { Circle, ExternalLink, Network } from "lucide-react";
 // plane imports
 import {
   EUserPermissions,
@@ -105,6 +105,14 @@ export const IssuesHeader = observer(() => {
             canUserCreateIssue={canUserCreateIssue}
           />
         </div>
+        <Button
+          onClick={() => router.push(`/${workspaceSlug}/projects/${projectId}/graph`)}
+          variant="neutral-primary"
+          size="sm"
+          prependIcon={<Network className="h-3.5 w-3.5" />}
+        >
+          <span className="hidden sm:inline">Graph View</span>
+        </Button>
         {canUserCreateIssue ? (
           <Button
             onClick={() => {

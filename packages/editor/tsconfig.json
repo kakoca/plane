@@ -13,11 +13,21 @@
     "paths": {
       "@/*": ["./src/core/*"],
       "@/styles/*": ["./src/styles/*"],
-      "@/plane-editor/*": ["./src/ce/*"]
+      "@/plane-editor/*": ["./src/ce/*"],
+      "@plane/constants": ["../constants/src/index.ts"],
+      "@plane/hooks": ["../hooks/src/index.ts"],
+      "@plane/types": ["../types/src/index.ts"],
+      "@plane/ui": ["../ui/src/index.ts"],
+      "@plane/utils": ["../utils/src/index.ts"],
+      "@plane/propel/*": ["../propel/src/*"]
     },
     "strictNullChecks": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src/**/*", "index.d.ts"],
+  "include": [
+    "src/**/*",
+    "index.d.ts",
+    "../ui/src/types/**/*.d.ts"
+  ],
   "exclude": ["dist", "build", "node_modules"]
 }
