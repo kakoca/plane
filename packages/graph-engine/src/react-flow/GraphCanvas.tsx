@@ -37,6 +37,11 @@ import type {
 } from '../types';
 import { lightTheme, darkTheme, defaultGraphConfig } from '../theme';
 
+// Empty objects defined outside to prevent recreation warning
+// @see https://reactflow.dev/error#002
+const EMPTY_NODE_TYPES = {};
+const EMPTY_EDGE_TYPES = {};
+
 interface GraphCanvasProps {
   // Data
   initialData?: GraphData;
@@ -88,8 +93,8 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({
   theme = 'light',
   className = '',
   style = {},
-  nodeTypes = {},
-  edgeTypes = {},
+  nodeTypes = EMPTY_NODE_TYPES,
+  edgeTypes = EMPTY_EDGE_TYPES,
   onNodeClick,
   onNodeDoubleClick,
   onNodeContextMenu,
@@ -277,7 +282,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({
         if (onChange) {
           onChange({
             nodes: applyNodeChanges(changes, nodes) as GraphNode[],
-            edges,
+            edges: edges as GraphEdge[],
           });
         }
       }
@@ -290,9 +295,10 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({
     (changes: EdgeChange[]) => {
       onEdgesChange(changes);
       if (onChange) {
+        const updatedEdges = applyEdgeChanges(changes, edges);
         onChange({
-          nodes,
-          edges: applyEdgeChanges(changes, edges) as GraphEdge[],
+          nodes: nodes as GraphNode[],
+          edges: updatedEdges as GraphEdge[],
         });
       }
     },
@@ -376,15 +382,7 @@ const GraphCanvas: React.FC<GraphCanvasProps> = ({
         )}
         
         {mergedConfig.showControls && (
-          <Controls
-            style={{
-              button: {
-                backgroundColor: currentTheme.background.backgroundColor,
-                color: currentTheme.nodes.issue.textColor,
-                borderColor: currentTheme.nodes.issue.borderColor,
-              },
-            }}
-          />
+          <Controls />
         )}
         
         {mergedConfig.showMinimap && (

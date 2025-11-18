@@ -476,7 +476,7 @@ class GraphRelationshipEndpoint(BaseAPIView):
         """Create a relation between two issues"""
         from plane.db.models import Project, IssueRelation, Issue
         from plane.utils.issue_relation_mapper import get_actual_relation
-        from plane.bgtasks.issue_activities_task import issue_activity
+        from plane.bgtasks.issue_activities_task import issue_activity  # type: ignore
         from plane.utils.host import base_host
         from django.utils import timezone
         import json
@@ -513,7 +513,7 @@ class GraphRelationshipEndpoint(BaseAPIView):
             relation_type=get_actual_relation(relation_type),
             defaults={
                 "project_id": project_id,
-                "workspace_id": project.workspace_id,
+                "workspace_id": project.workspace.id,
                 "created_by": request.user,
                 "updated_by": request.user,
             }
@@ -521,17 +521,20 @@ class GraphRelationshipEndpoint(BaseAPIView):
         
         if created:
             # Log activity
-            issue_activity.delay(
-                type="issue_relation.activity.created",
-                requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
-                actor_id=str(request.user.id),
-                issue_id=str(source_id),
-                project_id=str(project_id),
-                current_instance=None,
-                epoch=int(timezone.now().timestamp()),
-                notification=True,
-                origin=base_host(request=request, is_app=True),
-            )
+            try:
+                issue_activity.delay(
+                    type="issue_relation.activity.created",
+                    requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
+                    actor_id=str(request.user.id),
+                    issue_id=str(source_id),
+                    project_id=str(project_id),
+                    current_instance=None,
+                    epoch=int(timezone.now().timestamp()),
+                    notification=True,
+                    origin=base_host(request=request, is_app=True),
+                )
+            except Exception:
+                pass  # Celery not configured
             
             return Response(
                 {
@@ -555,7 +558,7 @@ class GraphRelationshipEndpoint(BaseAPIView):
     def _add_issue_to_cycle(self, request, slug, project_id, cycle_id, issue_id):
         """Add an issue to a cycle"""
         from plane.db.models import Cycle, Issue, CycleIssue
-        from plane.bgtasks.issue_activities_task import issue_activity
+        from plane.bgtasks.issue_activities_task import issue_activity  # type: ignore
         from plane.utils.host import base_host
         from django.utils import timezone
         import json
@@ -588,17 +591,20 @@ class GraphRelationshipEndpoint(BaseAPIView):
         
         if created:
             # Log activity
-            issue_activity.delay(
-                type="cycle.activity.created",
-                requested_data=json.dumps({"cycle_id": str(cycle_id)}, cls=DjangoJSONEncoder),
-                actor_id=str(request.user.id),
-                issue_id=str(issue_id),
-                project_id=str(project_id),
-                current_instance=None,
-                epoch=int(timezone.now().timestamp()),
-                notification=True,
-                origin=base_host(request=request, is_app=True),
-            )
+            try:
+                issue_activity.delay(
+                    type="cycle.activity.created",
+                    requested_data=json.dumps({"cycle_id": str(cycle_id)}, cls=DjangoJSONEncoder),
+                    actor_id=str(request.user.id),
+                    issue_id=str(issue_id),
+                    project_id=str(project_id),
+                    current_instance=None,
+                    epoch=int(timezone.now().timestamp()),
+                    notification=True,
+                    origin=base_host(request=request, is_app=True),
+                )
+            except Exception:
+                pass  # Celery not configured
             
             return Response(
                 {
@@ -616,73 +622,74 @@ class GraphRelationshipEndpoint(BaseAPIView):
                     "id": str(cycle_issue.id),
                 },
                 status=status.HTTP_200_OK,
-           )
-   
-   def _add_issue_to_module(self, request, slug, project_id, module_id, issue_id):
-       """Add an issue to a module"""
-       from plane.db.models import Module, Issue, ModuleIssue
-       from plane.bgtasks.issue_activities_task import issue_activity
-       from plane.utils.host import base_host
-       from django.utils import timezone
-       import json
-       from django.core.serializers.json import DjangoJSONEncoder
-       
-       # Validate module and issue exist
-       if not Module.objects.filter(id=module_id, project_id=project_id).exists():
-           return Response(
-               {"error": f"Module {module_id} not found in project"},
-               status=status.HTTP_404_NOT_FOUND,
-           )
-       
-       if not Issue.issue_objects.filter(id=issue_id, project_id=project_id).exists():
-           return Response(
-               {"error": f"Issue {issue_id} not found in project"},
-               status=status.HTTP_404_NOT_FOUND,
-           )
-       
-       # Create module-issue relationship
-       module_issue, created = ModuleIssue.objects.get_or_create(
-           module_id=module_id,
-           issue_id=issue_id,
-           defaults={
-               "project_id": project_id,
-               "workspace_id": Module.objects.get(id=module_id).workspace_id,
-               "created_by": request.user,
-               "updated_by": request.user,
-           }
-       )
-       
-       if created:
-           # Log activity
-           issue_activity.delay(
-               type="module.activity.created",
-               requested_data=json.dumps({"module_id": str(module_id)}, cls=DjangoJSONEncoder),
-               actor_id=str(request.user.id),
-               issue_id=str(issue_id),
-               project_id=str(project_id),
-               current_instance=None,
-               epoch=int(timezone.now().timestamp()),
-               notification=True,
-               origin=base_host(request=request, is_app=True),
-           )
-           
-           return Response(
-               {
-                   "id": str(module_issue.id),
-                   "module_id": str(module_id),
-                   "issue_id": str(issue_id),
-                   "created": True,
-               },
-               status=status.HTTP_201_CREATED,
-           )
-       else:
-           return Response(
-               {
-                   "message": "Issue already in module",
-                   "id": str(module_issue.id),
-               },
-               status=status.HTTP_200_OK,
-           )
+            )
+    
+    def _add_issue_to_module(self, request, slug, project_id, module_id, issue_id):
+        """Add an issue to a module"""
+        from plane.db.models import Module, Issue, ModuleIssue
+        from plane.bgtasks.issue_activities_task import issue_activity  # type: ignore
+        from plane.utils.host import base_host
+        from django.utils import timezone
+        import json
+        from django.core.serializers.json import DjangoJSONEncoder
+        
+        # Validate module and issue exist
+        if not Module.objects.filter(id=module_id, project_id=project_id).exists():
+            return Response(
+                {"error": f"Module {module_id} not found in project"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        
+        if not Issue.issue_objects.filter(id=issue_id, project_id=project_id).exists():
+            return Response(
+                {"error": f"Issue {issue_id} not found in project"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        
+        # Create module-issue relationship
+        module = Module.objects.get(id=module_id)
+        module_issue, created = ModuleIssue.objects.get_or_create(
+            module_id=module_id,
+            issue_id=issue_id,
+            defaults={
+                "project_id": project_id,
+                "workspace_id": module.project.workspace_id,
+                "created_by": request.user,
+                "updated_by": request.user,
+            }
+        )
+        
+        if created:
+            # Log activity
+            issue_activity.delay(
+                type="module.activity.created",
+                requested_data=json.dumps({"module_id": str(module_id)}, cls=DjangoJSONEncoder),
+                actor_id=str(request.user.id),
+                issue_id=str(issue_id),
+                project_id=str(project_id),
+                current_instance=None,
+                epoch=int(timezone.now().timestamp()),
+                notification=True,
+                origin=base_host(request=request, is_app=True),
+            )
+            
+            return Response(
+                {
+                    "id": str(module_issue.id),
+                    "module_id": str(module_id),
+                    "issue_id": str(issue_id),
+                    "created": True,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        else:
+            return Response(
+                {
+                    "message": "Issue already in module",
+                    "id": str(module_issue.id),
+                },
+                status=status.HTTP_200_OK,
+            )
 
 
 class GraphLayoutEndpoint(BaseAPIView):

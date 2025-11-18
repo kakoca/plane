@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 // assets
 import LogoSpinnerDark from "@/app/assets/images/logo-spinner-dark.gif?url";
@@ -5,8 +6,13 @@ import LogoSpinnerLight from "@/app/assets/images/logo-spinner-light.gif?url";
 
 export const LogoSpinner = () => {
   const { resolvedTheme } = useTheme();
+  const [isMounted, setIsMounted] = useState(false);
 
-  const logoSrc = resolvedTheme === "dark" ? LogoSpinnerDark : LogoSpinnerLight;
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const logoSrc = isMounted && resolvedTheme === "dark" ? LogoSpinnerDark : LogoSpinnerLight;
 
   return (
     <div className="flex items-center justify-center">

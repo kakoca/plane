@@ -9,7 +9,10 @@
       "@/*": ["core/*"],
       "@/helpers/*": ["helpers/*"],
       "@/styles/*": ["styles/*"],
-      "@/plane-web/*": ["ce/*"]
+      "@/plane-web/*": ["ce/*"],
+      "@plane/graph-engine": ["../../packages/graph-engine/src/index.ts"],
+      "@plane/graph-engine/*": ["../../packages/graph-engine/src/*"],
+      "@graph-engine/*": ["../../packages/graph-engine/src/*"]
     },
     "strictNullChecks": true
   },

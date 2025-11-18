@@ -3,57 +3,76 @@
  * Componente principal para visualização de grafos de projetos
  */
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import type {
+  GraphConnectionEvent,
+  GraphData,
+  GraphEdge,
+  GraphFilters,
+  GraphNode,
+  GraphNodeClickEvent,
+} from '@graph-engine/types';
+import { observer } from 'mobx-react';
 import {
+  CycleNode,
+  FilterUtils,
   GraphCanvas,
   IssueNode,
-  CycleNode,
   ModuleNode,
   useGraphData,
   useGraphFilters,
-  FilterUtils,
 } from '@plane/graph-engine';
 import { PlaneDataAdapter } from '../adapters/PlaneDataAdapter';
-import { observer } from 'mobx-react';
+import type { PlaneCycle, PlaneIssue, PlaneModule } from '../adapters/PlaneDataAdapter';
 
-// Tipos de nós customizados
-const nodeTypes = {
+// Tipos de nós customizados - definidos fora do componente para evitar recriação
+const NODE_TYPES = {
   issue: IssueNode,
   cycle: CycleNode,
   module: ModuleNode,
-};
+} as const;
 
 interface ProjectGraphViewProps {
   projectId: string;
   workspaceSlug: string;
   // Dados mockados por enquanto - serão substituídos por chamadas de API
-  issues?: any[];
-  cycles?: any[];
-  modules?: any[];
+  issues?: PlaneIssue[];
+  cycles?: PlaneCycle[];
+  modules?: PlaneModule[];
   onIssueClick?: (issueId: string) => void;
+  onCycleClick?: (cycleId: string) => void;
+  onModuleClick?: (moduleId: string) => void;
   onRelationshipCreate?: (sourceId: string, targetId: string, type: string) => Promise<void>;
+  theme?: 'light' | 'dark';
   className?: string;
 }
 
 export const ProjectGraphView: React.FC<ProjectGraphViewProps> = observer(({
-  projectId,
-  workspaceSlug,
+  projectId: _projectId,
+  workspaceSlug: _workspaceSlug,
   issues = [],
   cycles = [],
   modules = [],
   onIssueClick,
+  onCycleClick,
+  onModuleClick,
   onRelationshipCreate,
+  theme = 'light',
   className = '',
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [layout, setLayout] = useState<'force' | 'hierarchical' | 'circular' | 'grid'>('force');
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(theme === 'dark');
+
+  useEffect(() => {
+    setIsDarkMode(theme === 'dark');
+  }, [theme]);
 
   // Inicializar adaptador
   const adapter = useMemo(() => new PlaneDataAdapter(layout), [layout]);
 
   // Converter dados do Plane para GraphData
-  const initialGraphData = useMemo(() => {
+  const initialGraphData = useMemo<GraphData>(() => {
     if (issues.length === 0 && cycles.length === 0 && modules.length === 0) {
       // Retornar dados mockados para demonstração
       return {
@@ -165,15 +184,22 @@ export const ProjectGraphView: React.FC<ProjectGraphViewProps> = observer(({
     });
   }, [issues, cycles, modules, layout, adapter]);
 
-  const { graphData, setGraphData } = useGraphData(initialGraphData);
+  const { graphData, setGraphData } = useGraphData(initialGraphData) as {
+    graphData: GraphData;
+    setGraphData: (value: GraphData | ((prev: GraphData) => GraphData)) => void;
+  };
   const { filters, updateFilter, clearFilters } = useGraphFilters({
     types: ['issue', 'cycle', 'module'],
-  });
+  }) as {
+    filters: GraphFilters;
+    updateFilter: (key: keyof GraphFilters, value: GraphFilters[keyof GraphFilters]) => void;
+    clearFilters: () => void;
+  };
 
   // Aplicar filtros
   const filteredData = useMemo(() => {
-    const filteredNodes = FilterUtils.filterNodes(graphData.nodes, filters);
-    const visibleNodeIds = new Set(filteredNodes.map(n => n.id));
+    const filteredNodes = FilterUtils.filterNodes(graphData.nodes, filters) as GraphNode[];
+    const visibleNodeIds = new Set(filteredNodes.map((node) => node.id));
     const filteredEdges = FilterUtils.filterEdges(graphData.edges, visibleNodeIds);
 
     return {
@@ -183,18 +209,26 @@ export const ProjectGraphView: React.FC<ProjectGraphViewProps> = observer(({
   }, [graphData, filters]);
 
   // Handler para clique em nó
-  const handleNodeClick = useCallback((event: any) => {
+  const handleNodeClick = useCallback((event: GraphNodeClickEvent) => {
     const { node } = event;
-    
+
     if (node.type === 'issue' && onIssueClick) {
       onIssueClick(node.id);
+      return;
     }
 
-    console.log('Node clicked:', node);
-  }, [onIssueClick]);
+    if (node.type === 'cycle' && onCycleClick) {
+      onCycleClick(node.id);
+      return;
+    }
+
+    if (node.type === 'module' && onModuleClick) {
+      onModuleClick(node.id);
+    }
+  }, [onIssueClick, onCycleClick, onModuleClick]);
 
   // Handler para criar conexão
-  const handleConnect = useCallback(async (connection: any) => {
+  const handleConnect = useCallback(async (connection: GraphConnectionEvent) => {
     if (onRelationshipCreate) {
       try {
         setIsLoading(true);
@@ -203,9 +237,9 @@ export const ProjectGraphView: React.FC<ProjectGraphViewProps> = observer(({
           connection.target,
           'depends_on'
         );
-        
+
         // Adicionar aresta ao grafo
-        const newEdge = {
+        const newEdge: GraphEdge = {
           id: `edge-${Date.now()}`,
           source: connection.source,
           target: connection.target,
@@ -215,17 +249,17 @@ export const ProjectGraphView: React.FC<ProjectGraphViewProps> = observer(({
           },
         };
 
-        setGraphData({
-          ...graphData,
-          edges: [...graphData.edges, newEdge],
-        });
+        setGraphData((prev: GraphData) => ({
+          ...prev,
+          edges: [...prev.edges, newEdge],
+        }));
       } catch (error) {
         console.error('Failed to create relationship:', error);
       } finally {
         setIsLoading(false);
       }
     }
-  }, [onRelationshipCreate, graphData, setGraphData]);
+  }, [onRelationshipCreate, setGraphData]);
 
   // Handler para mudança de layout
   const handleLayoutChange = useCallback((newLayout: typeof layout) => {
@@ -234,8 +268,8 @@ export const ProjectGraphView: React.FC<ProjectGraphViewProps> = observer(({
   }, [adapter]);
 
   return (
-    <div className={`project-graph-view ${className}`} style={{ 
-      width: '100%', 
+    <div className={`project-graph-view ${className}`} style={{
+      width: '100%',
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
@@ -278,10 +312,10 @@ export const ProjectGraphView: React.FC<ProjectGraphViewProps> = observer(({
               checked={filters.types?.includes('issue')}
               onChange={(e) => {
                 const types = filters.types || [];
-                updateFilter('types', 
-                  e.target.checked 
+                updateFilter('types',
+                  e.target.checked
                     ? [...types, 'issue']
-                    : types.filter(t => t !== 'issue')
+                    : types.filter((type) => type !== 'issue')
                 );
               }}
             />
@@ -296,7 +330,7 @@ export const ProjectGraphView: React.FC<ProjectGraphViewProps> = observer(({
                 updateFilter('types',
                   e.target.checked
                     ? [...types, 'cycle']
-                    : types.filter(t => t !== 'cycle')
+                    : types.filter((type) => type !== 'cycle')
                 );
               }}
             />
@@ -311,7 +345,7 @@ export const ProjectGraphView: React.FC<ProjectGraphViewProps> = observer(({
                 updateFilter('types',
                   e.target.checked
                     ? [...types, 'module']
-                    : types.filter(t => t !== 'module')
+                    : types.filter((type) => type !== 'module')
                 );
               }}
             />
@@ -372,7 +406,7 @@ export const ProjectGraphView: React.FC<ProjectGraphViewProps> = observer(({
         <GraphCanvas
           nodes={filteredData.nodes}
           edges={filteredData.edges}
-          nodeTypes={nodeTypes}
+          nodeTypes={NODE_TYPES}
           theme={isDarkMode ? 'dark' : 'light'}
           config={{
             showMinimap: true,

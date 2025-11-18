@@ -25,11 +25,11 @@ function ScrollArea({
   ...props
 }: ScrollAreaProps) {
   return (
-    <BaseScrollArea.Root data-slot="scroll-area" className={cn("relative", rootClassName)} {...props}>
+    <BaseScrollArea.Root data-slot="scroll-area" className={cn("relative overflow-hidden", rootClassName)} {...props}>
       <BaseScrollArea.Viewport
         data-slot="scroll-area-viewport"
         className={cn(
-          "focus-visible:ring-ring/50 size-full overscroll-contain rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline",
+          "focus-visible:ring-ring/50 size-full overscroll-contain overflow-auto rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline",
           viewportClassName
         )}
       >

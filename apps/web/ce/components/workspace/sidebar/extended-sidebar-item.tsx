@@ -171,18 +171,16 @@ export const ExtendedSidebarItem: FC<TExtendedSidebarItemProps> = observer((prop
             position="top-end"
             disabled={isDragging}
           >
-            <button
-              type="button"
+            <DragHandle
               className={cn(
                 "flex items-center justify-center absolute top-1/2 -left-3 -translate-y-1/2 rounded text-custom-sidebar-text-400 cursor-grab",
                 {
                   "cursor-grabbing": isDragging,
                 }
               )}
+              aria-label={t("drag_to_rearrange")}
               ref={dragHandleRef}
-            >
-              <DragHandle className="bg-transparent" />
-            </button>
+            />
           </Tooltip>
         )}
         <SidebarNavItem isActive={isActive}>

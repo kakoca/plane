@@ -184,8 +184,7 @@ export const FavoriteFolder: React.FC<Props> = (props) => {
                         position="top-end"
                         disabled={isDragging}
                       >
-                        <button
-                          type="button"
+                        <DragHandle
                           className={cn(
                             "hidden group-hover/project-item:flex items-center justify-center absolute top-1/2 -left-3 -translate-y-1/2 rounded text-custom-sidebar-text-400 cursor-grab",
                             {
@@ -193,9 +192,8 @@ export const FavoriteFolder: React.FC<Props> = (props) => {
                               "cursor-grabbing": isDragging,
                             }
                           )}
-                        >
-                          <DragHandle className="bg-transparent" />
-                        </button>
+                          aria-label="Drag favorite"
+                        />
                       </Tooltip>
                       <div className="size-5 grid place-items-center flex-shrink-0">
                         <FavoriteFolderIcon />

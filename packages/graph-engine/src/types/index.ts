@@ -65,7 +65,7 @@ export interface GraphNodeMetadata {
 
 export interface GraphNode extends Node {
   id: string;
-  type: PlaneObjectType;
+  type?: PlaneObjectType;
   data: {
     label: string;
     metadata: GraphNodeMetadata;
@@ -98,7 +98,7 @@ export interface GraphEdge extends Edge {
   id: string;
   source: string;
   target: string;
-  type: RelationType;
+  type?: RelationType;
   data?: {
     label?: string;
     metadata?: GraphEdgeMetadata;

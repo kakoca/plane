@@ -1,21 +1,24 @@
-import React, { useMemo, useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
+import type {
+  GraphConnectionEvent,
+  GraphData,
+  GraphEdge,
+  GraphNode,
+  GraphNodeClickEvent,
+} from "@graph-engine/types";
 import { observer } from "mobx-react";
-import {
-  GraphCanvas,
-  lightTheme,
-  darkTheme,
-  useGraphData,
-  useGraphFilters,
-} from "@plane/graph-engine";
+import { GraphCanvas, useGraphData } from "@plane/graph-engine";
 import { PlaneDataAdapter } from "../adapters/PlaneDataAdapter";
+import type { PlaneIssue, PlaneModule } from "../adapters/PlaneDataAdapter";
+import { NODE_TYPES } from "../constants/nodeTypes";
 
 // Tipos
 interface CycleGraphViewProps {
   workspaceSlug: string;
   projectId: string;
   cycleId: string;
-  issues?: any[];
-  modules?: any[];
+  issues?: PlaneIssue[];
+  modules?: PlaneModule[];
   onIssueClick?: (issueId: string) => void;
   onModuleClick?: (moduleId: string) => void;
   onRelationshipCreate?: (sourceId: string, targetId: string, type: string) => Promise<void>;
@@ -25,14 +28,14 @@ interface CycleGraphViewProps {
 
 /**
  * CycleGraphView - Componente de visualização de grafos específico para ciclos
- * 
+ *
  * Exibe issues relacionadas a um ciclo específico e suas conexões com módulos.
  * Permite visualizar:
  * - Issues do ciclo
  * - Relacionamentos entre issues (blocks, depends_on, parent_of)
  * - Conexões com módulos
  * - Criar novos relacionamentos via drag-and-drop
- * 
+ *
  * @example
  * ```tsx
  * <CycleGraphView
@@ -46,9 +49,9 @@ interface CycleGraphViewProps {
  * ```
  */
 export const CycleGraphView: React.FC<CycleGraphViewProps> = observer(({
-  workspaceSlug,
-  projectId,
-  cycleId,
+  workspaceSlug: _workspaceSlug,
+  projectId: _projectId,
+  cycleId: _cycleId,
   issues = [],
   modules = [],
   onIssueClick,
@@ -57,29 +60,30 @@ export const CycleGraphView: React.FC<CycleGraphViewProps> = observer(({
   theme = "light",
   className = "",
 }) => {
-  const [layout, setLayout] = useState<"force" | "hierarchical" | "circular">("hierarchical");
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(["issue", "module"]);
+  type LayoutOption = "force" | "hierarchical" | "circular";
+  const [layout, setLayout] = useState<LayoutOption>("hierarchical");
+  const [selectedTypes, setSelectedTypes] = useState<Array<"issue" | "module">>(["issue", "module"]);
 
   // Criar adaptador e converter dados
   const adapter = useMemo(() => new PlaneDataAdapter(layout), [layout]);
-  
-  const initialGraphData = useMemo(() => {
-    // Focar apenas em dados do ciclo
-    return adapter.convertToGraphData({
-      issues,
-      modules,
-      cycles: [], // Não mostrar outros ciclos nesta view
-      pages: [],
-      views: [],
-    });
-  }, [adapter, issues, modules]);
+
+  const initialGraphData = useMemo<GraphData>(
+    () =>
+      adapter.convertToGraphData({
+        issues,
+        modules,
+        cycles: [],
+        pages: [],
+        views: [],
+      }),
+    [adapter, issues, modules]
+  );
 
   // Gerenciamento de estado do grafo
-  const { graphData, setGraphData } = useGraphData(initialGraphData);
-  const { filters, updateFilter } = useGraphFilters();
-
-  // Tema do grafo
-  const graphTheme = theme === "dark" ? darkTheme : lightTheme;
+  const { graphData, setGraphData } = useGraphData(initialGraphData) as {
+    graphData: GraphData;
+    setGraphData: (value: GraphData | ((prev: GraphData) => GraphData)) => void;
+  };
 
   // Configuração do grafo
   const config = {
@@ -94,64 +98,61 @@ export const CycleGraphView: React.FC<CycleGraphViewProps> = observer(({
   };
 
   // Handler para cliques em nós
-  const handleNodeClick = useCallback((nodeId: string, nodeType: string) => {
-    console.log(`[CycleGraphView] Node clicked: ${nodeId} (${nodeType})`);
-    
-    switch (nodeType) {
-      case "issue":
-        onIssueClick?.(nodeId);
-        break;
-      case "module":
-        onModuleClick?.(nodeId);
-        break;
+  const handleNodeClick = useCallback((event: GraphNodeClickEvent) => {
+    const { node } = event;
+
+    if (node.type === "issue" && onIssueClick) {
+      onIssueClick(node.id);
+      return;
+    }
+
+    if (node.type === "module" && onModuleClick) {
+      onModuleClick(node.id);
     }
   }, [onIssueClick, onModuleClick]);
 
   // Handler para criar conexões
-  const handleConnect = useCallback(async (connection: { source: string; target: string }) => {
-    console.log("[CycleGraphView] Creating connection:", connection);
-    
+  const handleConnect = useCallback(async (connection: GraphConnectionEvent) => {
     try {
-      // Criar relacionamento via API
       if (onRelationshipCreate) {
         await onRelationshipCreate(connection.source, connection.target, "depends_on");
       }
 
-      // Adicionar edge ao grafo
-      const newEdge = {
+      const newEdge: GraphEdge = {
         id: `edge-${Date.now()}`,
         source: connection.source,
         target: connection.target,
-        type: "depends_on" as const,
+        type: "depends_on",
       };
 
-      setGraphData({
-        ...graphData,
-        edges: [...graphData.edges, newEdge],
-      });
+      setGraphData((prev: GraphData) => ({
+        ...prev,
+        edges: [...prev.edges, newEdge],
+      }));
     } catch (error) {
       console.error("[CycleGraphView] Error creating relationship:", error);
     }
-  }, [graphData, setGraphData, onRelationshipCreate]);
+  }, [onRelationshipCreate, setGraphData]);
 
   // Filtrar nodes por tipo selecionado
-  const filteredNodes = useMemo(() => {
-    return graphData.nodes.filter(node => selectedTypes.includes(node.type));
-  }, [graphData.nodes, selectedTypes]);
+  const filteredNodes = useMemo(
+    () => graphData.nodes.filter((node) => selectedTypes.includes(node.type as "issue" | "module")),
+    [graphData.nodes, selectedTypes]
+  );
 
   // Filtrar edges baseado nos nodes visíveis
   const filteredEdges = useMemo(() => {
-    const visibleNodeIds = new Set(filteredNodes.map(n => n.id));
+    const visibleNodeIds = new Set(filteredNodes.map((node: GraphNode) => node.id));
     return graphData.edges.filter(
-      edge => visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
+      (edge) => visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
     );
   }, [graphData.edges, filteredNodes]);
 
   // Toggle de tipo de nó
-  const toggleNodeType = useCallback((type: string) => {
-    setSelectedTypes(prev => 
-      prev.includes(type) 
-        ? prev.filter(t => t !== type)
+  const toggleNodeType = useCallback((type: "issue" | "module") => {
+    setSelectedTypes((prev) =>
+      prev.includes(type)
+        ? prev.filter((item) => item !== type)
         : [...prev, type]
     );
   }, []);
@@ -175,11 +176,11 @@ export const CycleGraphView: React.FC<CycleGraphViewProps> = observer(({
         <span style={{ fontSize: "12px", fontWeight: 600, color: theme === "dark" ? "#e5e7eb" : "#374151" }}>
           Cycle View
         </span>
-        
+
         {/* Layout selector */}
         <select
           value={layout}
-          onChange={(e) => setLayout(e.target.value as any)}
+          onChange={(event) => setLayout(event.target.value as LayoutOption)}
           style={{
             padding: "4px 8px",
             borderRadius: "4px",
@@ -231,10 +232,11 @@ export const CycleGraphView: React.FC<CycleGraphViewProps> = observer(({
       <GraphCanvas
         nodes={filteredNodes}
         edges={filteredEdges}
+        nodeTypes={NODE_TYPES}
         onNodeClick={handleNodeClick}
         onConnect={handleConnect}
         config={config}
-        theme={graphTheme}
+        theme={theme}
       />
 
       {/* Stats */}

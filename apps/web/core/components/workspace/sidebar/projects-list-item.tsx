@@ -239,8 +239,7 @@ export const SidebarProjectsListItem: React.FC<Props> = observer((props) => {
                 position="top-end"
                 disabled={isDragging}
               >
-                <button
-                  type="button"
+                <DragHandle
                   className={cn(
                     "hidden group-hover/project-item:flex items-center justify-center absolute top-1/2 -left-3 -translate-y-1/2 rounded text-custom-sidebar-text-400 cursor-grab",
                     {
@@ -249,10 +248,9 @@ export const SidebarProjectsListItem: React.FC<Props> = observer((props) => {
                       flex: isMenuActive || renderInExtendedSidebar,
                     }
                   )}
+                  aria-label={t("drag_to_rearrange")}
                   ref={dragHandleRef}
-                >
-                  <DragHandle className="bg-transparent" />
-                </button>
+                />
               </Tooltip>
             )}
             <>

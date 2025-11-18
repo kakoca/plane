@@ -13,7 +13,7 @@ import type {
 } from '@plane/graph-engine';
 
 // Import Plane types (these would come from @plane/types)
-interface PlaneIssue {
+export interface PlaneIssue {
   id: string;
   name: string;
   sequence_id: string;
@@ -52,7 +52,7 @@ interface PlaneIssue {
   relates_to_issues?: string[];
 }
 
-interface PlaneCycle {
+export interface PlaneCycle {
   id: string;
   name: string;
   description?: string;
@@ -75,7 +75,7 @@ interface PlaneCycle {
   updated_at: string;
 }
 
-interface PlaneModule {
+export interface PlaneModule {
   id: string;
   name: string;
   description?: string;
@@ -99,7 +99,7 @@ interface PlaneModule {
   updated_at: string;
 }
 
-interface PlanePage {
+export interface PlanePage {
   id: string;
   name: string;
   description?: string;
@@ -118,7 +118,7 @@ interface PlanePage {
   linked_issues?: string[];
 }
 
-interface PlaneView {
+export interface PlaneView {
   id: string;
   name: string;
   description?: string;
@@ -558,35 +558,46 @@ export class PlaneDataAdapter {
     const nodes: GraphNode[] = [];
     const edges: GraphEdge[] = [];
 
+    // Helper to ensure we have a valid array
+    const ensureArray = <T,>(value: T[] | undefined | null): T[] => {
+      return Array.isArray(value) ? value : [];
+    };
+
     // Convert all entity types to nodes
-    if (data.issues) {
-      nodes.push(...this.issuesToNodes(data.issues));
-      edges.push(...this.extractIssueRelationships(data.issues));
+    const issuesArray = ensureArray(data.issues);
+    const cyclesArray = ensureArray(data.cycles);
+    const modulesArray = ensureArray(data.modules);
+    const pagesArray = ensureArray(data.pages);
+    const viewsArray = ensureArray(data.views);
+
+    if (issuesArray.length > 0) {
+      nodes.push(...this.issuesToNodes(issuesArray));
+      edges.push(...this.extractIssueRelationships(issuesArray));
     }
 
-    if (data.cycles) {
-      nodes.push(...this.cyclesToNodes(data.cycles));
+    if (cyclesArray.length > 0) {
+      nodes.push(...this.cyclesToNodes(cyclesArray));
     }
 
-    if (data.modules) {
-      nodes.push(...this.modulesToNodes(data.modules));
+    if (modulesArray.length > 0) {
+      nodes.push(...this.modulesToNodes(modulesArray));
     }
 
-    if (data.pages) {
-      nodes.push(...this.pagesToNodes(data.pages));
-      edges.push(...this.createPageEdges(data.pages));
+    if (pagesArray.length > 0) {
+      nodes.push(...this.pagesToNodes(pagesArray));
+      edges.push(...this.createPageEdges(pagesArray));
     }
 
-    if (data.views) {
-      nodes.push(...this.viewsToNodes(data.views));
+    if (viewsArray.length > 0) {
+      nodes.push(...this.viewsToNodes(viewsArray));
     }
 
     // Create container edges (issues to cycles/modules)
-    if (data.issues && (data.cycles || data.modules)) {
+    if (issuesArray.length > 0 && (cyclesArray.length > 0 || modulesArray.length > 0)) {
       edges.push(...this.createContainerEdges(
-        data.issues,
-        data.cycles || [],
-        data.modules || []
+        issuesArray,
+        cyclesArray,
+        modulesArray
       ));
     }
 
