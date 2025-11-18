@@ -384,10 +384,11 @@ class ProjectGraphEndpoint(BaseAPIView):
         workspace_endpoint.kwargs = {"slug": slug}
         
         # Override query params to include project filter
-        request.GET._mutable = True
-        request.GET["project_id"] = project_id
-        request.GET["scope"] = "project"
-        request.GET._mutable = False
+        # Create a mutable copy of QueryDict
+        new_get = request.GET.copy()
+        new_get["project_id"] = project_id
+        new_get["scope"] = "project"
+        request.GET = new_get
         
         return workspace_endpoint.get(request, slug)
 
@@ -615,7 +616,73 @@ class GraphRelationshipEndpoint(BaseAPIView):
                     "id": str(cycle_issue.id),
                 },
                 status=status.HTTP_200_OK,
-            )
+           )
+   
+   def _add_issue_to_module(self, request, slug, project_id, module_id, issue_id):
+       """Add an issue to a module"""
+       from plane.db.models import Module, Issue, ModuleIssue
+       from plane.bgtasks.issue_activities_task import issue_activity
+       from plane.utils.host import base_host
+       from django.utils import timezone
+       import json
+       from django.core.serializers.json import DjangoJSONEncoder
+       
+       # Validate module and issue exist
+       if not Module.objects.filter(id=module_id, project_id=project_id).exists():
+           return Response(
+               {"error": f"Module {module_id} not found in project"},
+               status=status.HTTP_404_NOT_FOUND,
+           )
+       
+       if not Issue.issue_objects.filter(id=issue_id, project_id=project_id).exists():
+           return Response(
+               {"error": f"Issue {issue_id} not found in project"},
+               status=status.HTTP_404_NOT_FOUND,
+           )
+       
+       # Create module-issue relationship
+       module_issue, created = ModuleIssue.objects.get_or_create(
+           module_id=module_id,
+           issue_id=issue_id,
+           defaults={
+               "project_id": project_id,
+               "workspace_id": Module.objects.get(id=module_id).workspace_id,
+               "created_by": request.user,
+               "updated_by": request.user,
+           }
+       )
+       
+       if created:
+           # Log activity
+           issue_activity.delay(
+               type="module.activity.created",
+               requested_data=json.dumps({"module_id": str(module_id)}, cls=DjangoJSONEncoder),
+               actor_id=str(request.user.id),
+               issue_id=str(issue_id),
+               project_id=str(project_id),
+               current_instance=None,
+               epoch=int(timezone.now().timestamp()),
+               notification=True,
+               origin=base_host(request=request, is_app=True),
+           )
+           
+           return Response(
+               {
+                   "id": str(module_issue.id),
+                   "module_id": str(module_id),
+                   "issue_id": str(issue_id),
+                   "created": True,
+               },
+               status=status.HTTP_201_CREATED,
+           )
+       else:
+           return Response(
+               {
+                   "message": "Issue already in module",
+                   "id": str(module_issue.id),
+               },
+               status=status.HTTP_200_OK,
+           )
 
 
 class GraphLayoutEndpoint(BaseAPIView):
@@ -642,9 +709,8 @@ class GraphLayoutEndpoint(BaseAPIView):
         try:
             project = Project.objects.get(id=project_id, workspace__slug=slug)
             
-            # Get layout from project metadata or a dedicated model
-            # For now, using project metadata field (you may need to add this field)
-            layout = getattr(project, 'graph_layout', {})
+            # Get layout from project metadata
+            layout = project.metadata.get('graph_layout', {}) if project.metadata else {}
             
             return Response(
                 {
@@ -701,10 +767,11 @@ class GraphLayoutEndpoint(BaseAPIView):
                     )
             
             # Save layout to project metadata
-            # Note: You may need to add a JSONField 'graph_layout' to the Project model
-            # For now, we'll simulate saving it
-            project.graph_layout = layout
-            project.save(update_fields=['graph_layout'])
+            # Using existing metadata field instead of creating new field
+            if not project.metadata:
+                project.metadata = {}
+            project.metadata['graph_layout'] = layout
+            project.save(update_fields=['metadata'])
             
             return Response(
                 {
@@ -724,70 +791,4 @@ class GraphLayoutEndpoint(BaseAPIView):
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-    
-    def _add_issue_to_module(self, request, slug, project_id, module_id, issue_id):
-        """Add an issue to a module"""
-        from plane.db.models import Module, Issue, ModuleIssue
-        from plane.bgtasks.issue_activities_task import issue_activity
-        from plane.utils.host import base_host
-        from django.utils import timezone
-        import json
-        from django.core.serializers.json import DjangoJSONEncoder
-        
-        # Validate module and issue exist
-        if not Module.objects.filter(id=module_id, project_id=project_id).exists():
-            return Response(
-                {"error": f"Module {module_id} not found in project"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        
-        if not Issue.issue_objects.filter(id=issue_id, project_id=project_id).exists():
-            return Response(
-                {"error": f"Issue {issue_id} not found in project"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        
-        # Create module-issue relationship
-        module_issue, created = ModuleIssue.objects.get_or_create(
-            module_id=module_id,
-            issue_id=issue_id,
-            defaults={
-                "project_id": project_id,
-                "workspace_id": Module.objects.get(id=module_id).workspace_id,
-                "created_by": request.user,
-                "updated_by": request.user,
-            }
-        )
-        
-        if created:
-            # Log activity
-            issue_activity.delay(
-                type="module.activity.created",
-                requested_data=json.dumps({"module_id": str(module_id)}, cls=DjangoJSONEncoder),
-                actor_id=str(request.user.id),
-                issue_id=str(issue_id),
-                project_id=str(project_id),
-                current_instance=None,
-                epoch=int(timezone.now().timestamp()),
-                notification=True,
-                origin=base_host(request=request, is_app=True),
-            )
-            
-            return Response(
-                {
-                    "id": str(module_issue.id),
-                    "module_id": str(module_id),
-                    "issue_id": str(issue_id),
-                    "created": True,
-                },
-                status=status.HTTP_201_CREATED,
-            )
-        else:
-            return Response(
-                {
-                    "message": "Issue already in module",
-                    "id": str(module_issue.id),
-                },
-                status=status.HTTP_200_OK,
             )
