@@ -410,6 +410,10 @@ class GraphRelationshipEndpoint(BaseAPIView):
     
     permission_classes = [ProjectEntityPermission]
     
+    def _dispatch_task(self, task, *args, **kwargs):
+        task_callable = getattr(task, "delay", task)
+        return task_callable(*args, **kwargs)
+    
     def post(self, request, slug, project_id):
         # Parse request data
         source_id = request.data.get("source_id")
@@ -516,13 +520,13 @@ class GraphRelationshipEndpoint(BaseAPIView):
                 "workspace_id": project.workspace.id,
                 "created_by": request.user,
                 "updated_by": request.user,
-            }
+            },
         )
-        
+
         if created:
-            # Log activity
             try:
-                issue_activity.delay(
+                self._dispatch_task(
+                    issue_activity,
                     type="issue_relation.activity.created",
                     requested_data=json.dumps(request.data, cls=DjangoJSONEncoder),
                     actor_id=str(request.user.id),
@@ -578,21 +582,23 @@ class GraphRelationshipEndpoint(BaseAPIView):
             )
         
         # Create cycle-issue relationship
+        # Create cycle-issue relationship
+        cycle = Cycle.objects.get(id=cycle_id, project_id=project_id)
         cycle_issue, created = CycleIssue.objects.get_or_create(
             cycle_id=cycle_id,
             issue_id=issue_id,
             defaults={
                 "project_id": project_id,
-                "workspace_id": Cycle.objects.get(id=cycle_id).workspace_id,
+                "workspace_id": cycle.workspace_id,
                 "created_by": request.user,
                 "updated_by": request.user,
-            }
+            },
         )
-        
+
         if created:
-            # Log activity
             try:
-                issue_activity.delay(
+                self._dispatch_task(
+                    issue_activity,
                     type="cycle.activity.created",
                     requested_data=json.dumps({"cycle_id": str(cycle_id)}, cls=DjangoJSONEncoder),
                     actor_id=str(request.user.id),
@@ -623,7 +629,6 @@ class GraphRelationshipEndpoint(BaseAPIView):
                 },
                 status=status.HTTP_200_OK,
             )
-    
     def _add_issue_to_module(self, request, slug, project_id, module_id, issue_id):
         """Add an issue to a module"""
         from plane.db.models import Module, Issue, ModuleIssue
@@ -647,31 +652,35 @@ class GraphRelationshipEndpoint(BaseAPIView):
             )
         
         # Create module-issue relationship
-        module = Module.objects.get(id=module_id)
+        # Create module-issue relationship
+        module = Module.objects.get(id=module_id, project_id=project_id)
         module_issue, created = ModuleIssue.objects.get_or_create(
             module_id=module_id,
             issue_id=issue_id,
             defaults={
                 "project_id": project_id,
-                "workspace_id": module.project.workspace_id,
+                "workspace_id": module.workspace_id,
                 "created_by": request.user,
                 "updated_by": request.user,
-            }
+            },
         )
         
         if created:
-            # Log activity
-            issue_activity.delay(
-                type="module.activity.created",
-                requested_data=json.dumps({"module_id": str(module_id)}, cls=DjangoJSONEncoder),
-                actor_id=str(request.user.id),
-                issue_id=str(issue_id),
-                project_id=str(project_id),
-                current_instance=None,
-                epoch=int(timezone.now().timestamp()),
-                notification=True,
-                origin=base_host(request=request, is_app=True),
-            )
+            try:
+                self._dispatch_task(
+                    issue_activity,
+                    type="module.activity.created",
+                    requested_data=json.dumps({"module_id": str(module_id)}, cls=DjangoJSONEncoder),
+                    actor_id=str(request.user.id),
+                    issue_id=str(issue_id),
+                    project_id=str(project_id),
+                    current_instance=None,
+                    epoch=int(timezone.now().timestamp()),
+                    notification=True,
+                    origin=base_host(request=request, is_app=True),
+                )
+            except Exception:
+                pass  # Celery not configured
             
             return Response(
                 {
@@ -690,7 +699,6 @@ class GraphRelationshipEndpoint(BaseAPIView):
                 },
                 status=status.HTTP_200_OK,
             )
-
 
 class GraphLayoutEndpoint(BaseAPIView):
     """
