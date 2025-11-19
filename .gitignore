@@ -35,7 +35,7 @@ pnpm-debug.log*
 .pnpm-debug.log*
 
 # Local env files
-.env
+
 .env.local
 .env.development.local
 .env.test.local
@@ -53,7 +53,7 @@ venv
 *.pyc
 staticfiles
 mediafiles
-.env
+
 .DS_Store
 logs/
 htmlcov/
