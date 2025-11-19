@@ -170,6 +170,7 @@ export type IEditorProps = {
 export type ILiteTextEditorProps = IEditorProps;
 
 export type IRichTextEditorProps = IEditorProps & {
+  aiHandler?: TAIHandler;
   dragDropEnabled?: boolean;
 };
 

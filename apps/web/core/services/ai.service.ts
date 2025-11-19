@@ -41,4 +41,15 @@ export class AIService extends APIService {
         throw error?.response?.data;
       });
   }
+
+  async generateText(prompt: string, context: string = ""): Promise<{ response: string }> {
+    return this.post("/api/v1/ai/generate/", {
+      prompt,
+      context,
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
 }

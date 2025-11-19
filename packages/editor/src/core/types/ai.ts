@@ -1,4 +1,7 @@
+import { Editor } from "@tiptap/core";
+
 export type TAIMenuProps = {
+  editor: Editor;
   isOpen: boolean;
   onClose: () => void;
 };

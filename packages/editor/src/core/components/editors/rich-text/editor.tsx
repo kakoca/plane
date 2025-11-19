@@ -23,8 +23,9 @@ const RichTextEditor: React.FC<IRichTextEditorProps> = (props) => {
   const getExtensions = useCallback(() => {
     const extensions = [
       ...externalExtensions,
+
       SideMenuExtension({
-        aiEnabled: false,
+        aiEnabled: !!props.aiHandler,
         dragDropEnabled: !!dragDropEnabled,
       }),
       ...RichTextEditorAdditionalExtensions({

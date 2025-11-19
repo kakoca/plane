@@ -6,6 +6,7 @@ import type { MakeOptional, TSearchEntityRequestPayload, TSearchResponse } from 
 import { cn } from "@plane/utils";
 // components
 import { EditorMentionsRoot } from "@/components/editor/embeds/mentions";
+import { AIMenu } from "@/components/editor/ai/ai-menu";
 // hooks
 import { useEditorConfig, useEditorMention } from "@/hooks/editor";
 import { useMember } from "@/hooks/store/use-member";
@@ -21,13 +22,13 @@ type RichTextEditorWrapperProps = MakeOptional<
   projectId?: string;
 } & (
     | {
-        editable: false;
-      }
+      editable: false;
+    }
     | {
-        editable: true;
-        searchMentionCallback: (payload: TSearchEntityRequestPayload) => Promise<TSearchResponse>;
-        uploadFile: TFileHandler["upload"];
-      }
+      editable: true;
+      searchMentionCallback: (payload: TSearchEntityRequestPayload) => Promise<TSearchResponse>;
+      uploadFile: TFileHandler["upload"];
+    }
   );
 
 export const RichTextEditor = forwardRef<EditorRefApi, RichTextEditorWrapperProps>((props, ref) => {
@@ -56,6 +57,9 @@ export const RichTextEditor = forwardRef<EditorRefApi, RichTextEditorWrapperProp
   return (
     <RichTextEditorWithRef
       ref={ref}
+      aiHandler={{
+        menu: (props) => <AIMenu {...props} />,
+      }}
       disabledExtensions={[...richTextEditorExtensions.disabled, ...(additionalDisabledExtensions ?? [])]}
       editable={editable}
       flaggedExtensions={richTextEditorExtensions.flagged}

@@ -6,12 +6,15 @@ import { cn } from "@plane/utils";
 // types
 import type { TAIHandler } from "@/types";
 
+import { Editor } from "@tiptap/core";
+
 type Props = {
+  editor: Editor;
   menu: TAIHandler["menu"];
 };
 
 export const AIFeaturesMenu: React.FC<Props> = (props) => {
-  const { menu } = props;
+  const { editor, menu } = props;
   // states
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   // refs
@@ -88,6 +91,7 @@ export const AIFeaturesMenu: React.FC<Props> = (props) => {
     >
       <div ref={menuRef} className="z-10">
         {menu?.({
+          editor,
           isOpen: isPopupVisible,
           onClose: hidePopup,
         })}
