@@ -64,7 +64,7 @@ export const PageRenderer = (props: Props) => {
                 flaggedExtensions={flaggedExtensions}
                 disabledExtensions={disabledExtensions}
               />
-              <AIFeaturesMenu menu={aiHandler?.menu} />
+              <AIFeaturesMenu editor={editor} menu={aiHandler?.menu} />
             </div>
           )}
         </EditorContainer>

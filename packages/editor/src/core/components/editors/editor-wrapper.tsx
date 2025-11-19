@@ -7,10 +7,12 @@ import { DEFAULT_DISPLAY_CONFIG } from "@/constants/config";
 import { getEditorClassNames } from "@/helpers/common";
 import { useEditor } from "@/hooks/use-editor";
 // types
-import type { IEditorProps } from "@/types";
+import type { IEditorProps, TAIHandler } from "@/types";
 import { EditorContentWrapper } from "./editor-content";
+import { AIFeaturesMenu } from "@/components/menus/ai-menu";
 
 type Props = IEditorProps & {
+  aiHandler?: TAIHandler;
   children?: (editor: Editor) => React.ReactNode;
   editable: boolean;
   extensions: Extensions;
@@ -86,6 +88,7 @@ export const EditorWrapper: React.FC<Props> = (props) => {
       isTouchDevice={!!isTouchDevice}
     >
       {children?.(editor)}
+      {props.aiHandler && <AIFeaturesMenu editor={editor} menu={props.aiHandler.menu} />}
       <div className="flex flex-col">
         <EditorContentWrapper editor={editor} id={id} tabIndex={tabIndex} />
       </div>
