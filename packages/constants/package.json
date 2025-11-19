@@ -26,9 +26,10 @@
   },
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
-  "types": "./dist/index-hL6D4otH.d.ts",
+  "types": "./dist/index-DJLuo9HM.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index-DJLuo9HM.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },

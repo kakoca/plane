@@ -6,6 +6,7 @@
   "private": true,
   "exports": {
     ".": {
+      "types": "./dist/index-CKDrz1wc.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },

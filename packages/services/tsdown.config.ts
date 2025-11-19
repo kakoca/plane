@@ -4,7 +4,7 @@ export default defineConfig({
   entry: ["src/index.ts"],
   outDir: "dist",
   format: ["esm", "cjs"],
-  exports: true,
+  exports: false, // Disable auto-generation to manually control types in exports
   dts: true,
   clean: true,
   sourcemap: true,

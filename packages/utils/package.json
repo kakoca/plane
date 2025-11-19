@@ -7,6 +7,7 @@
   "type": "module",
   "exports": {
     ".": {
+      "types": "./dist/index-DmaEXgKl.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
@@ -45,5 +46,5 @@
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
-  "types": "./dist/index-BCLptat0.d.cts"
+  "types": "./dist/index-BVuEc_Nt.d.cts"
 }

@@ -5,13 +5,10 @@ export default defineConfig({
   outDir: "dist",
   format: ["esm", "cjs"],
   copy: ["src/styles"],
-  exports: {
-    customExports: (exports) => ({
-      ...exports,
-      "./styles.css": "./dist/styles/index.css",
-      "./styles": "./dist/styles/index.css",
-    }),
+  exports: false, // Disable auto-generation to manually control types in exports
+  dts: {
+    resolve: true,
   },
-  dts: true,
   clean: true,
+  treeshake: true,
 });
